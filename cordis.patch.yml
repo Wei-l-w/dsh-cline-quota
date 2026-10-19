@@ -1,0 +1,13 @@
+# dsh-cline-quota
+#
+# One loader entry provides both halves of this plugin:
+#   - host  half: lib/index.js   (main)             -> registers the /api/cline-quota routes
+#   - client half: lib/client.js (exports ./client) -> the "Cline 额度" chip in the session
+#     header utilities seat (conversation.session.header.utilities)
+#
+# `dsh plugin --profile <name> add <dir|tarball|github:user/repo>` appends this
+# package to dsh.profile.bundles automatically, because package.json declares
+# dsh.bundle.
+- insert:
+    - id: cline-quota
+      name: 'dsh-cline-quota'

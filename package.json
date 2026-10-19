@@ -1,0 +1,57 @@
+{
+  "name": "dsh-cline-quota",
+  "version": "0.2.0",
+  "description": "在 DeepSeek Harness 会话页头显示 Cline / ClinePass 订阅额度、Credits 余额与 ClinePass token 消耗，支持多账号切换。Show Cline / ClinePass subscription quota, credits, and ClinePass token usage in the DSH session header, with multi-account switching.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "cline",
+    "clinepass",
+    "quota",
+    "usage",
+    "credits"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node test/accounts.test.mjs"
+  },
+  "author": {
+    "name": "Wei-l-w",
+    "url": "https://github.com/Wei-l-w"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Wei-l-w/dsh-cline-quota.git"
+  },
+  "homepage": "https://github.com/Wei-l-w/dsh-cline-quota#readme",
+  "bugs": {
+    "url": "https://github.com/Wei-l-w/dsh-cline-quota/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    }
+  }
+}

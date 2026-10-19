@@ -92,7 +92,7 @@ key 本体放 `$DSH_HOME/.credentials.yaml` 的 `refs:` 下，或 `$DSH_HOME/.en
 npm test
 ```
 
-`test/accounts.test.mjs` 是离线 harness：把真实的 host 半边挂到假 ctx 与假 Cline API 上，覆盖账号选择、粘贴 key（验证 → 写凭据库 → 名单文件）、重复 key/重名、删除、以及金额单位换算。
+`test/accounts.test.mjs` 是离线 harness：把真实的 host 半边挂到假 ctx 与假 Cline API 上，覆盖账号选择、粘贴 key（验证 → 写凭据库 → 名单文件）、重复 key/重名、删除、以及金额单位换算。`test/range-presets.test.mjs` 校验区间预设的高亮映射与"数据已过期"判定（24h / 7 / 14 / 30 天与自定义区间）。
 
 ### 发版（维护者）
 

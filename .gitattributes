@@ -1,0 +1,3 @@
+# Keep working copies byte-identical across platforms: this plugin is shipped
+# as-is (no build step), so a checkout must match the packed tarball.
+* text=auto eol=lf

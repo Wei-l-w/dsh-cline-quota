@@ -1,6 +1,6 @@
 {
   "name": "dsh-cline-quota",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "在 DeepSeek Harness 会话页头显示 Cline / ClinePass 订阅额度、Credits 余额与 ClinePass token 消耗，支持多账号切换。Show Cline / ClinePass subscription quota, credits, and ClinePass token usage in the DSH session header, with multi-account switching.",
   "type": "module",
   "main": "lib/index.js",

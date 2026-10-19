@@ -18,18 +18,21 @@
 
 ## 安装
 
+已同时发布到 **npm** 与 **GitHub**，两个源内容逐字节一致：
+
+| 来源 | 安装标识 |
+|---|---|
+| npm（推荐） | `dsh-cline-quota` — https://www.npmjs.com/package/dsh-cline-quota |
+| GitHub | `github:Wei-l-w/dsh-cline-quota` |
+
 ### 1) 插件面板（推荐）
 
-DSH 侧边栏 →「插件」→「添加插件」，填下列任一：
-
-- `github:Wei-l-w/dsh-cline-quota`（GitHub 仓库）
-- `dsh-cline-quota`（若你已把它发布到 npm）
-- 本地目录或 `.tgz` 的**绝对路径**
+DSH 侧边栏 →「插件」→「添加插件」，填 `dsh-cline-quota`（或 `github:Wei-l-w/dsh-cline-quota`；也可以填本地目录 / `.tgz` 的**绝对路径**）。
 
 ### 2) 命令行
 
 ```powershell
-dsh plugin --profile <profile> add github:Wei-l-w/dsh-cline-quota
+dsh plugin --profile <profile> add dsh-cline-quota
 ```
 
 > 桌面版占用的 `desktop` profile 不能从命令行管理（会报 `profile "desktop" is managed exclusively by the Electron application`）；这种情况请用上面的插件面板。
@@ -90,6 +93,16 @@ npm test
 ```
 
 `test/accounts.test.mjs` 是离线 harness：把真实的 host 半边挂到假 ctx 与假 Cline API 上，覆盖账号选择、粘贴 key（验证 → 写凭据库 → 名单文件）、重复 key/重名、删除、以及金额单位换算。
+
+### 发版（维护者）
+
+```bash
+npm version patch          # 或 minor / major：改版本号并打 tag
+npm publish --access public
+git push --follow-tags
+```
+
+> 品牌新包的**首次**发布会先进入 npm 的 staged 队列：registry 上先出现 `0.0.0-stage` 占位版，实测约一分钟后自动上架。若被拦下需要 maintainer 用 2FA 批准 —— npm ≥ 11.15 用 `npm stage list` / `npm stage approve <stage-id>`，或在 npmjs.com 的 **Staged Packages** 页点 Approve。
 
 ## 卸载
 

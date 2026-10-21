@@ -73,6 +73,7 @@ key 本体放 `$DSH_HOME/.credentials.yaml` 的 `refs:` 下，或 `$DSH_HOME/.en
 - `Token 消耗` 块里的 `$` 是 Cline 按它的**参考价**折算的用量价值，**不是账单**：ClinePass 是订阅制，参考价不等于实付金额。
 - 对 `cline-pass/deepseek-v4.1-flash`，Cline 的参考价 = DeepSeek 官方**高峰**价（输入 $0.30 / 缓存命中 $0.006 / 输出 $1.20 每百万 token）；DeepSeek 空闲价是它的一半。
 - `0.1.0` 把 Cline 的 usage/caps 金额字段当成了 micro-USD，金额会放大 100 倍；`0.2.0` 已修正（usage/caps 按 `1e-8` 折算，`Credits` 余额仍是 micro-USD）。
+- **口径的一处上游变化**：Cline 在 2026-10 把订阅用量的 `aiModelTypeName` 从 `cline-pass` 改成了 `cline`（模型名仍是 `cline-pass/deepseek-v4.1-flash-1017`，`creditsUsed` 为 0、走 vercel 推理）。`0.2.3` 起「类型是 `cline-pass`」**或**「模型名以 `cline-pass/` 开头」都算订阅用量 —— 否则新一天的数据会被整段漏掉，看起来像统计停更。
 
 ## 安全与隐私
 

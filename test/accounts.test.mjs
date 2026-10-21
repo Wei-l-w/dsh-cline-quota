@@ -87,6 +87,25 @@ globalThis.fetch = async (url, init) => {
           completionTokens: 10,
           costUsd: 500000,
         },
+        // Cline relabelled subscription traffic to `cline` while keeping the
+        // `cline-pass/` model prefix: this row must still be counted.
+        {
+          date: '2026-10-19',
+          aiModelName: 'cline-pass/deepseek-v4.1-flash-1017',
+          aiModelTypeName: 'cline',
+          promptTokens: 2000,
+          completionTokens: 20,
+          costUsd: 700000,
+        },
+        // A directly billed provider: excluded, whatever its tokens are.
+        {
+          date: '2026-10-19',
+          aiModelName: 'deepseek-v4.1-flash',
+          aiModelTypeName: 'deepseek',
+          promptTokens: 9999,
+          completionTokens: 999,
+          costUsd: 800000,
+        },
       ],
     })
   }
@@ -95,11 +114,29 @@ globalThis.fetch = async (url, init) => {
       items: [
         {
           aiModelTypeName: 'cline-pass',
+          aiModelName: 'cline-pass/deepseek-v4.1-flash',
           createdAt: new Date().toISOString(),
           promptTokens: 100,
           completionTokens: 5,
           cachedTokens: 80,
           costUsd: 12345,
+        },
+        {
+          aiModelTypeName: 'cline',
+          aiModelName: 'cline-pass/deepseek-v4.1-flash-1017',
+          createdAt: new Date().toISOString(),
+          promptTokens: 1000,
+          completionTokens: 10,
+          cachedTokens: 900,
+          costUsd: 23456,
+        },
+        {
+          aiModelTypeName: 'deepseek',
+          aiModelName: 'deepseek-v4.1-flash',
+          createdAt: new Date().toISOString(),
+          promptTokens: 9999,
+          completionTokens: 999,
+          costUsd: 34567,
         },
       ],
       nextToken: null,
@@ -189,7 +226,20 @@ check('roster lists both configured accounts', a.accounts.length === 2, JSON.str
 check('configured flags come from credentials.describe', a.accounts[0].configured === true && a.accounts[1].configured === true)
 check('caps decoded with the 1e-8 unit', a.plan.caps.fiveHourUsd === 10 && a.plan.caps.monthlyUsd === 50, JSON.stringify(a.plan.caps))
 check('credits stay micro-USD', a.creditsUsd === 0.398178, String(a.creditsUsd))
-check('range cost is USD (1e-8 field)', a.tokens.rangeTotals.costUsd === 0.005, String(a.tokens.rangeTotals.costUsd))
+check('range cost is USD (1e-8 field)', a.tokens.rangeTotals.costUsd === 0.012, String(a.tokens.rangeTotals.costUsd))
+check('range total counts both pass rows', a.tokens.rangeTotals.total === 3030, String(a.tokens.rangeTotals.total))
+check(
+  'a relabelled cline row is still subscription usage',
+  a.tokens.models.some((entry) => entry.model === 'cline-pass/deepseek-v4.1-flash-1017' && entry.total === 2020),
+  JSON.stringify(a.tokens.models.map((entry) => entry.model + '=' + entry.total)),
+)
+check(
+  'a directly billed provider row is excluded',
+  !a.tokens.models.some((entry) => String(entry.model).includes('deepseek-v4.1-flash-1017') === false && entry.total === 10998),
+  JSON.stringify(a.tokens.models.map((entry) => entry.model + '=' + entry.total)),
+)
+check('five-hour total counts the relabelled row', a.tokens.fiveHours.total === 1115, String(a.tokens.fiveHours.total))
+check('five-hour requests exclude the other provider', a.tokens.fiveHours.requests === 2, String(a.tokens.fiveHours.requests))
 
 const b = await call('/api/cline-quota?account=' + encodeURIComponent('备号'))
 check('explicit account switches the resolved key', b.account.label === '备号' && b.account.email === 'second@example.com', b.account.email)

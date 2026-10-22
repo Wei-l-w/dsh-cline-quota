@@ -41,19 +41,20 @@ dsh plugin --profile <profile> add dsh-cline-quota
 
 ## 配置账号
 
-默认使用凭据引用 `CLINE_API_KEY`（就是 profile 里 `cline` provider 用的那个名字）。
+**插件不自带任何账号，也不依赖你 DSH 里配了 cline provider。** 打开面板点 `＋` 粘贴一个 Cline API key 就能用。
 
-**方式一：面板里粘贴**（推荐）
+**方式一：面板里粘贴**（默认，推荐）
 
 账号行右侧 `＋` → 粘贴 key → 保存。插件会先用 `GET /users/me` 验证这个 key，通过后：
 
-- key 写进 DSH 凭据库 `$DSH_HOME/.credentials.yaml`（与现有 `CLINE_API_KEY` 同一处，权限 600）
-- 插件自己的名单文件 `$DSH_HOME/cline-quota.accounts.json` 只记 `label` + 引用名，**不存明文**
+- key 存进**插件自己的名单文件** `$DSH_HOME/cline-quota.accounts.json`（权限 `0600`，与 `$DSH_HOME/.credentials.yaml` 同为明文，但**完全不碰 DSH 凭据库**）
+- 所以你以后换 provider、删 provider、清凭据，都不会把这个 key 弄丢
 - 面板自动切到这个新账号；账号名默认取该账号邮箱
+- 删除账号（行尾 `✕`）会连它保存的 key 一起删掉
 
-**方式二：配置文件**
+**方式二：复用 DSH 凭据库的引用**（可选）
 
-在 profile 的 `cordis.patch.yml` 里：
+如果你已经在 DSH 凭据库里有 Cline 的 key，也可以让插件按引用名去取：
 
 ```yaml
 - id: cline-quota
@@ -61,11 +62,11 @@ dsh plugin --profile <profile> add dsh-cline-quota
     accounts:
       - label: 主号
         keyRef: CLINE_API_KEY
-      - label: 备号
-        keyRef: CLINE_API_KEY_2
 ```
 
 key 本体放 `$DSH_HOME/.credentials.yaml` 的 `refs:` 下，或 `$DSH_HOME/.env`（只读回退层）。配置改完不必重启（loader 会带新配置重新 `apply`）。
+
+没有任何配置、也没加过账号时，面板显示「还没有账号 · 点 ＋ 粘贴 Cline API key」——这是正常的初始状态，不是错误。
 
 ## 关于金额（重要）
 
@@ -77,8 +78,8 @@ key 本体放 `$DSH_HOME/.credentials.yaml` 的 `refs:` 下，或 `$DSH_HOME/.en
 
 ## 安全与隐私
 
-- API key 只在 host 进程里按**引用名**解析；浏览器只会拿到额度数字、账号邮箱与引用名。
-- 面板里粘贴的 key 只在本机 loopback 的 POST body 里出现一次：**不回显、不写日志**（诊断日志只记方法、是否强制刷新、账号名、区间、UA、origin）。
+- 面板粘贴的 key 存在插件自己的 `$DSH_HOME/cline-quota.accounts.json`（`0600`）；配置的账号才按**引用名**从 DSH 凭据库取。浏览器只会拿到额度数字、账号邮箱与标签，**任何 key 都不会回传给浏览器**。
+- 粘贴时 key 只在本机 loopback 的 POST body 里出现一次：**不回显、不写日志**（诊断日志只记方法、是否强制刷新、账号名、区间、UA、origin）。
 - 插件不做任何遥测；host 进程只直连 `https://api.cline.bot`。
 - 路由在本机 loopback 上**无鉴权**（与 DSH 中其它精确路由一致）：同机进程可以读到额度数字与邮箱，但读不到 key。
 

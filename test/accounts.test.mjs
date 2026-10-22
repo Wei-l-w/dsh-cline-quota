@@ -154,31 +154,44 @@ globalThis.fetch = async (url, init) => {
   return { ok: false, status: 404, json: async () => ({}), text: async () => 'not found' }
 }
 
-const routes = new Map()
+let routes = new Map()
 const ctx = {
   credentials: {
     resolve: async (ref) => (store[ref] ? { value: store[ref], source: 'file' } : undefined),
     describe: async (ref) => ({ configured: Boolean(store[ref]) }),
-    set: async (ref, value) => {
-      store[ref] = value
+    // The plugin must not write through these any more: a panel key lives in its
+    // own roster file, so a provider change in DSH cannot take it away.
+    set: async () => {
+      throw new Error('the plugin must not write to the credential store')
     },
-    unset: async (ref) => {
-      delete store[ref]
+    unset: async () => {
+      throw new Error('the plugin must not write to the credential store')
     },
   },
   logger: { warn: () => {}, info: () => {} },
   effect: (fn) => fn(),
-  webServer: {
-    exact: new Map(),
-    prefixes: new Map(),
-    register(route) {
-      routes.set(route.path, route)
-      return () => routes.delete(route.path)
-    },
-  },
 }
 
-apply(ctx, {
+/** Mount the plugin with one config, replacing the routes registered before. */
+function mount(config) {
+  routes = new Map()
+  apply(
+    {
+      ...ctx,
+      webServer: {
+        exact: new Map(),
+        prefixes: new Map(),
+        register(route) {
+          routes.set(route.path, route)
+          return () => routes.delete(route.path)
+        },
+      },
+    },
+    config,
+  )
+}
+
+mount({
   accounts: [
     { label: '主号', keyRef: 'CLINE_API_KEY' },
     { label: '备号', keyRef: 'CLINE_API_KEY_2' },
@@ -251,15 +264,16 @@ check('unknown label falls back to the first account', missing.account.label ===
 
 // --- pasting a key in the panel --------------------------------------------
 const saved = await post('/api/cline-quota/key', { key: 'key-third' })
-check('the new account got a fresh reference', saved.ok === true && saved.account.keyRef === 'CLINE_API_KEY_3', String(saved.account && saved.account.keyRef))
+check('the pasted key is accepted', saved.ok === true, String(saved.error))
+check('a panel account carries no credential reference', saved.account.keyRef === undefined, String(saved.account.keyRef))
 check('the label defaults to the account e-mail', saved.account.label === 'third@example.com', saved.account.label)
-check('the key reached the credential store', store.CLINE_API_KEY_3 === 'key-third')
 check('the response never echoes the key', !JSON.stringify(saved).includes('key-third'))
+check('the credential store stayed untouched', store.CLINE_API_KEY_3 === undefined, Object.keys(store).join(','))
 check('the roster file exists', existsSync(statePath), statePath)
 const stateText = readFileSync(statePath, 'utf8')
 check(
-  'the roster file records references only, never the key',
-  stateText.includes('CLINE_API_KEY_3') && !stateText.includes('key-third'),
+  'the roster file holds the key for the panel account',
+  stateText.includes('key-third') && stateText.includes('third@example.com'),
   stateText.replace(/\s+/g, ' ').slice(0, 140),
 )
 
@@ -269,7 +283,7 @@ check('the roster grew to three accounts', afterAdd.accounts.length === 3, JSON.
 
 const bad = await post('/api/cline-quota/key', { key: 'bad-key' })
 check('an unusable key is rejected', bad.ok === false, String(bad.error))
-check('a rejected key is never stored', store.CLINE_API_KEY_4 === undefined, Object.keys(store).join(','))
+check('a rejected key is never stored', !readFileSync(statePath, 'utf8').includes('bad-key'), Object.keys(store).join(','))
 
 const dupe = await post('/api/cline-quota/key', { key: 'key-second' })
 check('the same key twice is refused', dupe.ok === false && /已经添加过/.test(String(dupe.error)), String(dupe.error))
@@ -277,8 +291,12 @@ const labelClash = await post('/api/cline-quota/key', { key: 'key-fourth', label
 check('a duplicate label is refused', labelClash.ok === false && /已经有一个叫/.test(String(labelClash.error)), String(labelClash.error))
 
 const removed = await post('/api/cline-quota/key/remove', { label: 'third@example.com' })
-check('removing forgets the stored reference', removed.ok === true && store.CLINE_API_KEY_3 === undefined, JSON.stringify(removed.accounts.map((x) => x.label)))
-check('the roster file drops the removed account', !readFileSync(statePath, 'utf8').includes('CLINE_API_KEY_3'))
+check(
+  'removing forgets the stored key',
+  removed.ok === true && !readFileSync(statePath, 'utf8').includes('key-third'),
+  JSON.stringify(removed.accounts.map((x) => x.label)),
+)
+check('the roster file drops the removed account', !readFileSync(statePath, 'utf8').includes('third@example.com'))
 const configRemove = await post('/api/cline-quota/key/remove', { label: '主号' })
 check('a configured account cannot be removed', configRemove.ok === false, String(configRemove.error))
 
@@ -287,6 +305,16 @@ delete store.CLINE_API_KEY_2
 const d = await call('/api/cline-quota?account=' + encodeURIComponent('备号') + '&refresh=1')
 check('a missing key names its reference', d.ok === false && /CLINE_API_KEY_2/.test(String(d.error)), String(d.error))
 check('failure still carries the roster', d.accounts.length === 2 && d.accounts[1].configured === false, JSON.stringify(d.accounts))
+
+// --- an install with no configuration at all --------------------------------
+// The plugin must not fall back to the provider's credential reference: with no
+// config and no panel account the roster stays empty and the panel asks for a key.
+mount({})
+const empty = await call('/api/cline-quota')
+check('no config means no accounts', Array.isArray(empty.accounts) && empty.accounts.length === 0, JSON.stringify(empty.accounts))
+check('the empty state is flagged for the panel', empty.empty === true && empty.ok === false, String(empty.error))
+check('it asks for a key instead of naming a credential', /＋/.test(String(empty.error)), String(empty.error))
+check('the store still holds its own reference', store.CLINE_API_KEY === 'key-main', Object.keys(store).join(','))
 
 const failed = checks.filter((entry) => !entry.ok).length
 console.log('\n' + (checks.length - failed) + '/' + checks.length + ' checks passed')
